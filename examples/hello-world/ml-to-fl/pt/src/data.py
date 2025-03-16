@@ -1,0 +1,132 @@
+import torch
+import pandas as pd
+import numpy as np
+from torch.utils.data import DataLoader, Dataset
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils.class_weight import compute_class_weight
+from imblearn.combine import SMOTETomek 
+
+class FraudDataset(Dataset):
+    """Custom PyTorch Dataset for Fraud Detection"""
+    def __init__(self, data, labels):
+        self.data = torch.tensor(data, dtype=torch.float32)
+        self.labels = torch.tensor(labels, dtype=torch.float32)  
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx], self.labels[idx]
+    
+def check_data_leakage(X_train, X_valid, X_test):
+    train_df = pd.DataFrame(X_train)
+    valid_df = pd.DataFrame(X_valid)
+    test_df = pd.DataFrame(X_test)
+
+    overlap_train_test = test_df.merge(train_df, how="inner")
+    overlap_train_valid = test_df.merge(valid_df, how="inner")
+
+    print(f"Overlapping samples between Train & Test: {len(overlap_train_test)}")
+    print(f"Overlapping samples between Validation & Test: {len(overlap_train_valid)}")
+
+
+def add_noise(X_train, mean=0, sigma=0.1):
+    """
+    Adds Gaussian noise to the training data.
+    Args:
+        X_train (numpy array): Training features.
+        mean (float): Mean of Gaussian noise.
+        sigma (float): Standard deviation of noise.
+
+    Returns:
+        numpy array: Noisy training features.
+    """
+    noise = np.random.normal(mean, sigma, X_train.shape)
+    return X_train + noise
+
+def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, validation_fraction=0.2, use_smote=True, add_noise_flag=True, noise_std=0.1):
+    """
+    Load fraud detection dataset from CSV, apply SMOTE if needed, add Gaussian noise, and create DataLoaders.
+    
+    Args:
+        csv_path (str): Path to the CSV file.
+        batch_size (int): Number of samples per batch.
+        num_workers (int): Number of workers for DataLoader.
+        validation_fraction (float): Fraction of training data to use for validation.
+        use_smote (bool): Whether to apply SMOTE to balance the dataset.
+        add_noise_flag (bool): Whether to add Gaussian noise after SMOTE.
+        noise_std (float): Standard deviation of Gaussian noise.
+
+    Returns:
+        tuple: (train_loader, valid_loader, test_loader, class_weights, y_train_before, y_train)
+    """
+    # Load dataset from CSV
+    df = pd.read_csv(csv_path)
+
+    # Extract features & labels
+    X = df.drop(columns=['Class']).values  
+    y = df['Class'].values  
+
+    # Standardize features
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+
+    # Compute class weights
+    class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(y), y=y.tolist())
+    class_weights = torch.tensor(class_weights, dtype=torch.float32)  # Convert to PyTorch tensor
+
+    # Split into train (80%) and test (20%)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
+    y_train_before = y_train.copy()  # Store original train labels for reference
+
+    
+    # Apply SMOTE only to training set
+    if use_smote:
+        print("Applying SMOTE to balance training data...")
+        smote = SMOTETomek(sampling_strategy=0.4, random_state=42)
+        X_train, y_train = smote.fit_resample(X_train, y_train)
+
+    # **Add Gaussian Noise to Training Data (After SMOTE)**
+    if add_noise_flag:
+        print(f"Adding Gaussian noise (std={noise_std}) to training data...")
+        X_train = add_noise(X_train, sigma=noise_std)  # Add noise
+
+    # Further split train into train (80%) and validation (20%) if validation_fraction > 0
+    # Split further into train & validation if validation_fraction > 0
+    if validation_fraction > 0:
+        X_train, X_valid, y_train, y_valid = train_test_split(
+            X_train, y_train, test_size=validation_fraction, stratify=y_train, random_state=42
+        )
+    else:
+        X_valid, y_valid = None, None  # Assign None to avoid UnboundLocalError
+
+    # Ensure variables exist before calling check_data_leakage()
+    if X_valid is not None and X_test is not None:
+        check_data_leakage(X_train, X_valid, X_test)
+
+
+    # Convert labels to PyTorch-compatible integer format (no one-hot encoding)
+    y_train = torch.tensor(y_train, dtype=torch.float32)
+    y_test = torch.tensor(y_test, dtype=torch.float32)
+    if X_valid is not None:
+        y_valid = torch.tensor(y_valid, dtype=torch.float32)
+
+    # Create PyTorch Datasets
+    train_dataset = FraudDataset(X_train, y_train)
+    test_dataset = FraudDataset(X_test, y_test)
+    
+    if X_valid is not None:
+        valid_dataset = FraudDataset(X_valid, y_valid)
+        valid_loader = DataLoader(valid_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
+    else:
+        valid_loader = None
+
+    # Create DataLoaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+
+    print(f"Training set size after SMOTE: {len(train_dataset)} samples")
+    print(f"Test set size: {len(test_dataset)} samples")
+
+    return train_loader, valid_loader, test_loader

@@ -1,0 +1,7 @@
+numpy
+monai[itk]
+pandas
+kaleido
+matplotlib
+jupyter
+notebook
