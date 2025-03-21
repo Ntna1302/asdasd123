@@ -9,7 +9,7 @@ from train import train_model  # Import training function from train.py
 import pandas as pd
 
 # Set dataset path
-DATASET_PATH = "/home/nahear/Thesis/NVFlare/examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
+DATASET_PATH = "examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
 DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 # Training hyperparameters
@@ -19,11 +19,9 @@ learning_rate = 0.0003
 
 def main():
 # Load fraud dataset
-    train_loader, valid_loader, test_loader, class_weights, y_train_before, y_train_after = get_dataloaders_fraud(
+    train_loader, valid_loader, test_loader = get_dataloaders_fraud(
         DATASET_PATH, batch_size=batch_size, use_smote=True
     )
-
-
 
     # Dynamically determine input size from dataset
     df = pd.read_csv(DATASET_PATH)
@@ -47,7 +45,7 @@ def main():
 
     train_loss_list, train_metrics_list, valid_metrics_list, test_metrics = train_model(
         model, num_epochs, train_loader, valid_loader, test_loader, optimizer,
-        criterion, DEVICE, scheduler=scheduler
+        criterion, DEVICE, scheduler=scheduler , stochastic=False
     )
 
 

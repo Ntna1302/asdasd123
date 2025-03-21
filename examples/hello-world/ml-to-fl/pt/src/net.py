@@ -37,7 +37,7 @@ import torch.nn.functional as F
 #         return x
     
 class FraudNet(nn.Module):
-    def __init__(self, input_size, dropout_rate=0.6):
+    def __init__(self, input_size=30, dropout_rate=0.6, device=None):
         """
         A fully connected neural network (MLP) for fraud detection.
 
@@ -77,10 +77,10 @@ class FraudNet(nn.Module):
         x = F.relu(self.bn2(self.fc2(x)))
         x = F.relu(self.bn3(self.fc3(x)))
 
-        # if apply_mask and self.dense_mask is not None:
-        #     self.dense_mask = self.dense_mask.to(x.device)
-        #     x = x * self.dense_mask
-        #     x = x / (1 - self.dropout_rate)  # Normalize output
+        if apply_mask and self.dense_mask is not None:
+            self.dense_mask = self.dense_mask.to(x.device)
+            x = x * self.dense_mask
+            x = x / (1 - self.dropout_rate)  # Normalize output
 
         x = self.fc4(x)  # No sigmoid here! BCEWithLogitsLoss expects raw logits
         return x
