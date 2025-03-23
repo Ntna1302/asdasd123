@@ -8,22 +8,23 @@ from evaluation import evaluate_model  # Import evaluation function
 from train import train_model  # Import training function from train.py
 import pandas as pd
 
-# Set dataset path
-DATASET_PATH = "examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
-DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
-
-# Training hyperparameters
-batch_size = 64
-num_epochs = 10
-learning_rate = 0.0003
-
 def main():
-# Load fraud dataset
+    # Load fraud dataset
+
+    # Set dataset path
+    DATASET_PATH = "examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
+    DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+    # Training hyperparameters
+    batch_size = 64
+    num_epochs = 15
+    learning_rate = 0.00003
+
+
     train_loader, valid_loader, test_loader = get_dataloaders_fraud(
         DATASET_PATH, batch_size=batch_size, use_smote=True
     )
 
-    # Dynamically determine input size from dataset
     df = pd.read_csv(DATASET_PATH)
     input_size = df.shape[1] - 1  
     print(f"Detected input size: {input_size}")
@@ -47,7 +48,6 @@ def main():
         model, num_epochs, train_loader, valid_loader, test_loader, optimizer,
         criterion, DEVICE, scheduler=scheduler , stochastic=False
     )
-
 
 
     # Save the trained model
