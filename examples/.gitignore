@@ -23,3 +23,5 @@ dataset*
 # venv
 nvflare_example
 *.csv
+*.png
+*.pth
