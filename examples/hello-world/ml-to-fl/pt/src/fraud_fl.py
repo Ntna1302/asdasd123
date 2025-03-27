@@ -68,12 +68,12 @@ def main():
         net.to(DEVICE)
         
         train_loss_list, train_metrics_list, valid_metrics_list, test_metrics = train_model(
-        model = net, num_epochs = 10, train_loader=train_loader , valid_loader=valid_loader, test_loader=test_loader, optimizer = optimizer,
+        model = net, num_epochs = epochs, train_loader=train_loader , valid_loader=valid_loader, test_loader=test_loader, optimizer = optimizer,
         criterion = criterion, device = DEVICE, scheduler=scheduler , stochastic=False
         )
         print("Finished Training")
-
-        PATH = "./cifar_net.pth"
+        
+        PATH = "./fraud_net_fl.pth"
         torch.save(net.state_dict(), PATH)
 
         output_model = flare.FLModel(
@@ -82,7 +82,7 @@ def main():
         )
         # (8) send model back to NVFlare
         flare.send(output_model)
-
+        print("Finished Sending Model")
 
 if __name__ == "__main__":
     main()

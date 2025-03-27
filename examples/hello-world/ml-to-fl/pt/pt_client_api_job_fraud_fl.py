@@ -15,7 +15,7 @@
 import argparse
 
 from src.lit_net import LitNet
-from src.net import Net
+from src.net import Net, FraudNet
 
 from nvflare.app_opt.pt.job_config.fed_avg import FedAvgJob
 from nvflare.job_config.script_runner import FrameworkType, ScriptRunner
@@ -25,8 +25,8 @@ def define_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_clients", type=int, default=2)
     parser.add_argument("--num_rounds", type=int, default=5)
-    parser.add_argument("--script", type=str, default="src/cifar10_fl.py")
-    parser.add_argument("--key_metric", type=str, default="accuracy")
+    parser.add_argument("--script", type=str, default="src/fraud_fl.py")
+    parser.add_argument("--key_metric", type=str, default="precision")
     parser.add_argument("--launch_process", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--launch_command", type=str, default="python3 -u")
     parser.add_argument("--ports", type=str, default="7777,8888")
@@ -53,7 +53,8 @@ def main():
         n_clients=n_clients,
         num_rounds=num_rounds,
         key_metric=key_metric,
-        initial_model=LitNet() if "lightning" in script else FraudNet(),
+        # initial_model=LitNet() if "lightning" in script else Net(),
+        initial_model=FraudNet(),
     )
 
     for i in range(n_clients):
@@ -66,9 +67,9 @@ def main():
         job.to(executor, f"site-{i + 1}")
 
     if export_config:
-        job.export_job("/tmp/nvflare/jobs/job_config")
+        job.export_job("./na132/jobs/job_config")
     else:
-        job.simulator_run("/tmp/nvflare/jobs/workdir", gpu="0")
+        job.simulator_run("./na132/jobs/workdir", gpu="0")
 
 
 if __name__ == "__main__":

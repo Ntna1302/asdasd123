@@ -25,3 +25,5 @@ nvflare_example
 *.csv
 *.png
 *.pth
+
+*na132

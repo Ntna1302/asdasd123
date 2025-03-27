@@ -1,7 +1,7 @@
 import torch
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
 
-def compute_metrics(model, data_loader, device, apply_mask=False):
+def compute_metrics(model, data_loader, device, threshold=0.5, apply_mask=False):
     """
     Compute accuracy, precision, recall, F1-score, and AUC-ROC for a fraud detection model.
     """
@@ -15,7 +15,7 @@ def compute_metrics(model, data_loader, device, apply_mask=False):
 
             logits = model(features, apply_mask=apply_mask)
             probabilities = torch.sigmoid(logits).cpu().numpy().flatten()
-            predictions = (probabilities >= 0.5).astype(int)  # Fix: Lowered threshold to 0.5
+            predictions = (probabilities >= threshold).astype(int)  # Fix: Lowered threshold to 0.5
 
             all_predictions.extend(predictions)
             all_targets.extend(targets)
@@ -30,7 +30,7 @@ def compute_metrics(model, data_loader, device, apply_mask=False):
         "auc_pr": average_precision_score(all_targets, all_probs) * 100
         
     }
-def evaluate_model(model, test_loader, device):
+def evaluate_model(model, test_loader, device, threshold=0.5):
     """
     Evaluate the model on the test dataset and print key metrics.
 
@@ -39,7 +39,7 @@ def evaluate_model(model, test_loader, device):
         test_loader (torch.utils.data.DataLoader): DataLoader for the test dataset.
         device (torch.device): Device ('cpu' or 'cuda') to perform computations.
     """
-    metrics = compute_metrics(model, test_loader, device)
+    metrics = compute_metrics(model, test_loader, device, threshold)
 
     print("**Evaluation Results:**")
     print(f"Accuracy   : {metrics['accuracy']:.2f}%")

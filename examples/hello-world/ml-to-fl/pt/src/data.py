@@ -28,7 +28,7 @@ def check_data_leakage(X_train, X_valid, X_test):
 
     overlap_train_test = test_df.merge(train_df, how="inner")
     overlap_test_valid = test_df.merge(valid_df, how="inner")
-    overlap_train_valid = valid_df.merge(valid_df, how="inner")
+    overlap_train_valid = train_df.merge(valid_df, how="inner")
     
     print(f"Overlapping samples between Train & Test: {len(overlap_train_test)}")
     print(f"Overlapping samples between Validation & Test: {len(overlap_test_valid)}")

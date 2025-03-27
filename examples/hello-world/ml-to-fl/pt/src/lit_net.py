@@ -17,7 +17,7 @@ from typing import Any
 import torch.nn as nn
 import torch.optim as optim
 from pytorch_lightning import LightningModule
-from src.net import FraudNet
+from src.net import Net
 from torchmetrics import Accuracy
 
 NUM_CLASSES = 10
@@ -28,7 +28,7 @@ class LitNet(LightningModule):
     def __init__(self):
         super().__init__()
         self.save_hyperparameters()
-        self.model = FraudNet()
+        self.model = Net()
         self.train_acc = Accuracy(task="multiclass", num_classes=NUM_CLASSES)
         self.valid_acc = Accuracy(task="multiclass", num_classes=NUM_CLASSES)
         # (optional) pass additional information via self.__fl_meta__
