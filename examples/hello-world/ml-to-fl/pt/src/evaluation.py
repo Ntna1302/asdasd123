@@ -1,7 +1,7 @@
 import torch
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
 
-def compute_metrics(model, data_loader, device, threshold=0.5, apply_mask=False):
+def compute_metrics(model, data_loader, device, threshold=0.85, apply_mask=False):
     """
     Compute accuracy, precision, recall, F1-score, and AUC-ROC for a fraud detection model.
     """
@@ -30,7 +30,7 @@ def compute_metrics(model, data_loader, device, threshold=0.5, apply_mask=False)
         "auc_pr": average_precision_score(all_targets, all_probs) * 100
         
     }
-def evaluate_model(model, test_loader, device, threshold=0.5):
+def evaluate_model(model, test_loader, device, threshold=0.85):
     """
     Evaluate the model on the test dataset and print key metrics.
 

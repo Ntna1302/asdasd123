@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-from net import FraudNet
+from net import FraudNet, EnhancedFraudNet
 from train import *
 from evaluation import *
 from data import get_dataloaders_fraud
@@ -30,7 +30,7 @@ import nvflare.client as flare
 from nvflare.client.tracking import SummaryWriter
 
 # (optional) set a fix place so we don't need to download everytime
-DATASET_PATH = "/home/khoa/Khoa/outsource/na_thesis/examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
+DATASET_PATH = "/home/nahear/Thesis/NVFlare/examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
 # (optional) We change to use GPU to speed things up.
 # if you want to use CPU, change DEVICE="cpu"
 DEVICE = "cuda:0"
@@ -46,7 +46,7 @@ def main():
         DATASET_PATH, batch_size=batch_size, use_smote=True
     )
 
-    net = FraudNet(device = DEVICE)
+    net = EnhancedFraudNet(device = DEVICE)
 
     # (2) initializes NVFlare client API
     flare.init()
@@ -69,7 +69,7 @@ def main():
         
         train_loss_list, train_metrics_list, valid_metrics_list, test_metrics = train_model(
         model = net, num_epochs = epochs, train_loader=train_loader , valid_loader=valid_loader, test_loader=test_loader, optimizer = optimizer,
-        criterion = criterion, device = DEVICE, scheduler=scheduler , stochastic=False
+        criterion = criterion, device = DEVICE, scheduler=scheduler , stochastic = True
         )
         print("Finished Training")
         

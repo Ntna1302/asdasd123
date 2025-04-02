@@ -7,7 +7,8 @@ from data import get_dataloaders_fraud  # Import dataset functions
 from evaluation import evaluate_model  # Import evaluation function
 from train import train_model  # Import training function from train.py
 import pandas as pd
-
+import sys
+from plot import plot_metrics, plot_confusion_matrices
 def main():
     # Load fraud dataset
 
@@ -22,7 +23,7 @@ def main():
 
 
     train_loader, valid_loader, test_loader = get_dataloaders_fraud(
-        DATASET_PATH, batch_size=batch_size, use_smote=True
+        DATASET_PATH, batch_size=batch_size, use_smote=True, plot=True
     )
 
     df = pd.read_csv(DATASET_PATH)
@@ -49,7 +50,10 @@ def main():
         criterion, DEVICE, scheduler=scheduler , stochastic=False
     )
 
-
+    plot_metrics(train_metrics_list, fig_name="train_metrics", save_path="examples/hello-world/ml-to-fl/pt/src/plot/train_metrics.png")
+    plot_metrics(valid_metrics_list, fig_name="valid_metrics", save_path="examples/hello-world/ml-to-fl/pt/src/plot/valid_metrics.png")
+    plot_confusion_matrices(model, test_loader, threshold=0.85, save_path="examples/hello-world/ml-to-fl/pt/src/plot/confusion_matrix.png")
+    
     # Save the trained model
     best_model_path = "best_model.pth"
     model.load_state_dict(torch.load(best_model_path))

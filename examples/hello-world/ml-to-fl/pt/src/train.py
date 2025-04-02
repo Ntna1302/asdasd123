@@ -30,7 +30,7 @@ def set_deterministic():
 
 def train_model(model, num_epochs, train_loader, valid_loader, test_loader, 
                 optimizer, criterion, device, input_model=None, summary_writer=None, 
-                scheduler=None, stochastic=False, early_stopping_patience=10):
+                scheduler=None, stochastic=True, early_stopping_patience=10):
     """
     Trains the fraud detection model.
 

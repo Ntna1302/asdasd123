@@ -37,7 +37,7 @@ class Net(nn.Module):
         return x
     
 class FraudNet(nn.Module):
-    def __init__(self, input_size=30, dropout_rate=0.6, device=None):
+    def __init__(self, input_size=30, dropout_rate=0.1, device=None):
         """
         A fully connected neural network (MLP) for fraud detection.
 
@@ -93,4 +93,80 @@ class FraudNet(nn.Module):
             x (torch.Tensor): Input tensor.
         """
         self.dense_mask = torch.bernoulli(torch.ones(self.fc3.out_features) * (1 - self.dropout_rate)).to(x.device)
+
+
+class EnhancedFraudNet(nn.Module):
+    def __init__(self, input_size=30, dropout_rate=0.2, device=None):
+        """
+        A fully connected neural network (MLP) for fraud detection with enhancements.
+
+        Args:
+            input_size (int): Number of features in the dataset.
+            dropout_rate (float): Dropout probability for regularization.
+        """
+        super(EnhancedFraudNet, self).__init__()
+
+        # Define the network layers
+        self.fc1 = nn.Linear(input_size, 128)
+        self.bn1 = nn.BatchNorm1d(128)
+        
+        self.fc2 = nn.Linear(128, 64)
+        self.bn2 = nn.BatchNorm1d(64)
+
+        self.fc3 = nn.Linear(64, 32)
+        self.bn3 = nn.BatchNorm1d(32)
+
+        self.fc4 = nn.Linear(32, 1)  # Output layer for binary classification
+
+        # Dropout layers
+        self.dropout = nn.Dropout(dropout_rate)
+        self.dropout_rate = dropout_rate
+
+        # Stochastic dropout mask (used for federated learning)
+        self.dense_mask = None
+
+        # Optionally, use LeakyReLU for non-linearity
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.01)
+        
+    def forward(self, x, apply_mask=False):
+        """
+        Forward pass through the fraud detection model with enhanced regularization.
+
+        Args:
+            x (torch.Tensor): Input features.
+            apply_mask (bool, optional): Whether to apply a dropout mask for Federated Learning. Default is False.
+
+        Returns:
+            torch.Tensor: Logits for binary classification (no sigmoid applied here, since BCEWithLogitsLoss expects raw logits).
+        """
+        # First fully connected layer with batch normalization
+        x = self.leaky_relu(self.bn1(self.fc1(x)))
+        x = self.dropout(x)  # Apply dropout
+        
+        # Second fully connected layer with batch normalization
+        x = self.leaky_relu(self.bn2(self.fc2(x)))
+        
+        # Third fully connected layer with batch normalization
+        x = self.leaky_relu(self.bn3(self.fc3(x)))
+
+        # Apply stochastic dropout mask (optional, only in federated learning)
+        if apply_mask and self.dense_mask is not None:
+            self.dense_mask = self.dense_mask.to(x.device)
+            x = x * self.dense_mask
+            x = x / (1 - self.dropout_rate)  # Normalize output after dropout
+
+        # Output layer (no sigmoid activation, because we use BCEWithLogitsLoss)
+        x = self.fc4(x)
+        return x
+
+    def resample_dropout_masks(self, x):
+        """
+        Resample the dropout mask for fully connected layers (used in Stochastic Dropout).
+
+        Args:
+            x (torch.Tensor): Input tensor.
+        """
+        # Resample the dropout mask with a Bernoulli distribution
+        self.dense_mask = torch.bernoulli(torch.ones(self.fc3.out_features) * (1 - self.dropout_rate)).to(x.device)
+
 

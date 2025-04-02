@@ -8,6 +8,7 @@ from sklearn.preprocessing import RobustScaler
 
 from sklearn.utils.class_weight import compute_class_weight
 from imblearn.combine import SMOTETomek 
+from plot import *
 
 class FraudDataset(Dataset):
     """Custom PyTorch Dataset for Fraud Detection"""
@@ -49,9 +50,12 @@ def add_noise(X_train, mean=0, sigma=0.1):
     noise = np.random.normal(mean, sigma, X_train.shape)
     return X_train + noise
 
-def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, validation_fraction=0.2, use_smote=True, add_noise_flag=True, noise_std=0.1):
+def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True, add_noise_flag=True, noise_std=0.1, plot = False):
     # Load dataset from CSV
     df = pd.read_csv(csv_path)
+    
+    if plot:
+        plot_distribution_org(df, save_path='examples/hello-world/ml-to-fl/pt/src/plot/class_distribution.png')
     
     df.drop_duplicates(inplace=True)
     
@@ -60,9 +64,7 @@ def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, validation_fra
     # Extract features & labels
     X = df.drop(columns=['Class']).values
     y = df['Class'].values
-    
-    # Standardize features
-    scaler = StandardScaler()
+
     ro_scaler = RobustScaler()
     
     # Compute class weights
@@ -77,16 +79,18 @@ def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, validation_fra
     X_train = ro_scaler.fit_transform(X_train)
     X_valid = ro_scaler.transform(X_valid)
     X_test = ro_scaler.transform(X_test)
-    
-    
-    # Store original train labels
-    y_train_before = y_train.copy()
-    
+
     # Apply SMOTE only to training set
     if use_smote:
         print("Applying SMOTE to balance training data...")
+        y_train_before = y_train
         smote = SMOTETomek(sampling_strategy=0.3, random_state=42)
         X_train, y_train = smote.fit_resample(X_train, y_train)
+        if plot:
+            plot_before_after_smote(y_train_before, y_train, save_path='examples/hello-world/ml-to-fl/pt/src/plot/class_distribution_smote.png')
+    
+    if plot:
+        plot_distribution_train_valid_test(y_train, y_valid, y_test, save_path='examples/hello-world/ml-to-fl/pt/src/plot/class_distribution_split.png')
     
     # Add Gaussian Noise to Training Data (After SMOTE)
     if add_noise_flag:
