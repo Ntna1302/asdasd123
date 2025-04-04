@@ -21,6 +21,7 @@ from net import FraudNet, EnhancedFraudNet
 from train import *
 from evaluation import *
 from data import get_dataloaders_fraud
+from plot import plot_metrics, plot_confusion_matrices
 
 
 # (1) import nvflare client API
@@ -30,7 +31,7 @@ import nvflare.client as flare
 from nvflare.client.tracking import SummaryWriter
 
 # (optional) set a fix place so we don't need to download everytime
-DATASET_PATH = "/home/nahear/Thesis/NVFlare/examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
+DATASET_PATH = "/home/khoa/Khoa/outsource/na_thesis/examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
 # (optional) We change to use GPU to speed things up.
 # if you want to use CPU, change DEVICE="cpu"
 DEVICE = "cuda:0"
@@ -38,12 +39,14 @@ batch_size = 64
 learning_rate = 0.0003
 
 def main():
-    set_all_seeds(42)
+    # set_all_seeds(42) # Comment out this so that it is pure randomness when training.
     
     epochs = 10
     
+    save_plot_dir = 'plot'
+    
     train_loader, valid_loader, test_loader = get_dataloaders_fraud(
-        DATASET_PATH, batch_size=batch_size, use_smote=True
+        DATASET_PATH, batch_size=batch_size, use_smote=True, plot=True, save_plot_dir=save_plot_dir
     )
 
     net = EnhancedFraudNet(device = DEVICE)
@@ -71,6 +74,11 @@ def main():
         model = net, num_epochs = epochs, train_loader=train_loader , valid_loader=valid_loader, test_loader=test_loader, optimizer = optimizer,
         criterion = criterion, device = DEVICE, scheduler=scheduler , stochastic = True
         )
+        
+        plot_metrics(train_metrics_list, fig_name="train_metrics", save_path=f"{save_plot_dir}/train_metrics.png")
+        plot_metrics(valid_metrics_list, fig_name="valid_metrics", save_path=f"{save_plot_dir}/valid_metrics.png")
+        plot_confusion_matrices(net, test_loader, threshold=0.85, save_path=f"{save_plot_dir}/confusion_matrix.png")
+        
         print("Finished Training")
         
         PATH = "./fraud_net_fl.pth"

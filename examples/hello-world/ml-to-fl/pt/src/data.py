@@ -9,6 +9,7 @@ from sklearn.preprocessing import RobustScaler
 from sklearn.utils.class_weight import compute_class_weight
 from imblearn.combine import SMOTETomek 
 from plot import *
+import os
 
 class FraudDataset(Dataset):
     """Custom PyTorch Dataset for Fraud Detection"""
@@ -50,16 +51,17 @@ def add_noise(X_train, mean=0, sigma=0.1):
     noise = np.random.normal(mean, sigma, X_train.shape)
     return X_train + noise
 
-def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True, add_noise_flag=True, noise_std=0.1, plot = False):
+def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True, add_noise_flag=True, noise_std=0.1, plot = False, save_plot_dir = '.'):
     # Load dataset from CSV
     df = pd.read_csv(csv_path)
     
     if plot:
-        plot_distribution_org(df, save_path='examples/hello-world/ml-to-fl/pt/src/plot/class_distribution.png')
+        os.makedirs(save_plot_dir, exist_ok=True)
+        plot_distribution_org(df, save_path=f'{save_plot_dir}/class_distribution.png')
     
     df.drop_duplicates(inplace=True)
     
-    df = df.sample(frac=1, random_state=42).reset_index(drop=True)
+    df = df.sample(frac=1).reset_index(drop=True)
     
     # Extract features & labels
     X = df.drop(columns=['Class']).values
@@ -73,8 +75,8 @@ def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True
     
     # First, split into train (64%), validation (16%), and test (20%)
     # This ensures all sets have the same original distribution
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.36, stratify=y, random_state=42)
-    X_test, X_valid, y_test, y_valid = train_test_split(X_temp, y_temp, test_size=0.2/0.36, stratify=y_temp, random_state=42)
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.36, stratify=y)
+    X_test, X_valid, y_test, y_valid = train_test_split(X_temp, y_temp, test_size=0.2/0.36, stratify=y_temp)
     
     X_train = ro_scaler.fit_transform(X_train)
     X_valid = ro_scaler.transform(X_valid)
@@ -84,13 +86,13 @@ def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True
     if use_smote:
         print("Applying SMOTE to balance training data...")
         y_train_before = y_train
-        smote = SMOTETomek(sampling_strategy=0.3, random_state=42)
+        smote = SMOTETomek(sampling_strategy=0.3)
         X_train, y_train = smote.fit_resample(X_train, y_train)
         if plot:
-            plot_before_after_smote(y_train_before, y_train, save_path='examples/hello-world/ml-to-fl/pt/src/plot/class_distribution_smote.png')
+            plot_before_after_smote(y_train_before, y_train, save_path=f'{save_plot_dir}/class_distribution_smote.png')
     
     if plot:
-        plot_distribution_train_valid_test(y_train, y_valid, y_test, save_path='examples/hello-world/ml-to-fl/pt/src/plot/class_distribution_split.png')
+        plot_distribution_train_valid_test(y_train, y_valid, y_test, save_path=f'{save_plot_dir}/class_distribution_split.png')
     
     # Add Gaussian Noise to Training Data (After SMOTE)
     if add_noise_flag:
