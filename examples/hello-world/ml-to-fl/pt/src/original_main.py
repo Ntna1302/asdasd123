@@ -5,13 +5,13 @@ import torch.optim as optim
 from net import FraudNet  # Import fraud detection model
 from data import get_dataloaders_fraud  # Import dataset functions
 from evaluation import evaluate_model  # Import evaluation function
-from train import train_model  # Import training function from train.py
+from train import train_model, set_all_seeds  # Import training function from train.py
 import pandas as pd
 import sys
-from plot import plot_metrics, plot_confusion_matrices
+from plot import plot_metrics, plot_confusion_matrices, plot_aucpr
 def main():
     # Load fraud dataset
-
+    set_all_seeds(42)
     # Set dataset path
     DATASET_PATH = "/home/khoa/Khoa/outsource/na_thesis/examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -24,7 +24,7 @@ def main():
     save_plot_dir = 'plot'
 
     train_loader, valid_loader, test_loader = get_dataloaders_fraud(
-        DATASET_PATH, batch_size=batch_size, use_smote=True, plot=True, save_plot_dir=save_plot_dir
+        DATASET_PATH, batch_size=batch_size, use_smote=False, plot=True, save_plot_dir=save_plot_dir
     )
 
     df = pd.read_csv(DATASET_PATH)
@@ -54,7 +54,7 @@ def main():
     plot_metrics(train_metrics_list, fig_name="train_metrics", save_path=f"{save_plot_dir}/train_metrics.png")
     plot_metrics(valid_metrics_list, fig_name="valid_metrics", save_path=f"{save_plot_dir}/valid_metrics.png")
     plot_confusion_matrices(model, test_loader, threshold=0.85, save_path=f"{save_plot_dir}/confusion_matrix.png")
-    
+    plot_aucpr(model, test_loader,device= DEVICE, save_path=f"{save_plot_dir}/auc_pr.png")
     # Save the trained model
     best_model_path = "best_model.pth"
     model.load_state_dict(torch.load(best_model_path))

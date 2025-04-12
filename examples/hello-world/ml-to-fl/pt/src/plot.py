@@ -4,6 +4,7 @@ import seaborn as sns
 import pandas as pd
 from sklearn.metrics import confusion_matrix
 import torch
+from sklearn.metrics import precision_recall_curve, average_precision_score
 def plot_distribution_org(df: pd.DataFrame, save_path="./class_distribution.png"):
     """
     Visualize the class distribution in the original dataset with counts and percentages.
@@ -569,3 +570,81 @@ def plot_confusion_matrices(model, test_loader, threshold=0.9, save_path="./conf
     
     print(f"Confusion matrix visualization saved to {save_path}")
     
+import numpy as np
+import torch
+from sklearn.metrics import precision_recall_curve, average_precision_score
+import matplotlib.pyplot as plt
+
+def plot_aucpr(model, test_loader, device, save_path="./auc_pr.png"):
+    """
+    Plot Precision-Recall curve and calculate AUC-PR for test data after training a model.
+    
+    Parameters:
+    -----------
+    model : torch.nn.Module
+        Trained PyTorch model to evaluate.
+    test_loader : torch.utils.data.DataLoader
+        DataLoader containing test data.
+    device : torch.device
+        Device to run the model on ('cpu' or 'cuda').
+    save_path : str
+        Path where the plot will be saved.
+        
+    Returns:
+    --------
+    float: The AUC-PR score
+    """
+    model.eval()
+    all_preds = []
+    all_labels = []
+
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            outputs = model(inputs)
+            probs = torch.sigmoid(outputs).cpu().numpy()
+            all_preds.extend(probs)
+            all_labels.extend(labels.cpu().numpy())
+
+    all_preds = np.array(all_preds)
+    all_labels = np.array(all_labels)
+
+    precision, recall, _ = precision_recall_curve(all_labels, all_preds)
+    auc_pr = average_precision_score(all_labels, all_preds)
+    baseline = np.mean(all_labels)
+
+    plt.figure(figsize=(8, 6))
+
+    # Fill under the PR curve
+    plt.fill_between(recall, precision, alpha=0.3, color='orange')
+
+    # Plot the PR curve line
+    plt.plot(recall, precision, color='#00008B', linewidth=1.8)  # dark blue
+
+    # Plot the baseline
+    plt.axhline(y=baseline, linestyle='--', color='gray', alpha=0.8, linewidth=1.0)
+    plt.text(0.02, baseline + 0.015, f"Baseline, y = {baseline:.2f}",
+             color='black', fontsize=10)
+
+    # Center the AUC text
+    center_x = np.mean(recall)
+    center_y = np.mean(precision)
+    plt.text(center_x, center_y, f"PR AUC = {auc_pr:.2f}",
+             fontsize=14, weight='bold', color='black')
+
+
+    # Final plot styling
+    plt.title("PR curve", fontsize=16)
+    plt.xlabel("Recall/True positive rate", fontsize=14)
+    plt.ylabel("Precision", fontsize=14)
+    plt.grid(True, alpha=0.3)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+    print(f"AUC-PR: {auc_pr:.3f}, plot saved to {save_path}")
+    return auc_pr
+

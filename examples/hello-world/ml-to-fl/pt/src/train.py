@@ -127,7 +127,7 @@ def train_model(model, num_epochs, train_loader, valid_loader, test_loader,
     print("Evaluating best saved model on test data.")
 
     # Final Test Evaluation
-    test_metrics = compute_metrics(model, test_loader, device)
+    test_metrics = compute_metrics(model, test_loader, device, threshold=0.956)
     print(f"**Final Test Results:** "
           f"Accuracy: {test_metrics['accuracy']:.2f}%, "
           f"Precision: {test_metrics['precision']:.2f}%, "
