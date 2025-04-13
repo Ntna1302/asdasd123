@@ -74,7 +74,7 @@ def train_model(model, num_epochs, train_loader, valid_loader, test_loader,
             targets = targets.view(-1, 1)  
 
             optimizer.zero_grad()
-            logits = model(features, apply_mask=True)
+            logits = model(features, apply_mask=True).to(device)
             loss = criterion(logits, targets)
             loss.backward()
             optimizer.step()

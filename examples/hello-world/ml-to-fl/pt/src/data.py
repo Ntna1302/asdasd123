@@ -69,10 +69,6 @@ def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True
 
     ro_scaler = RobustScaler()
     
-    # Compute class weights
-    class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(y), y=y.tolist())
-    class_weights = torch.tensor(class_weights, dtype=torch.float32)
-    
     # First, split into train (64%), validation (16%), and test (20%)
     # This ensures all sets have the same original distribution
     X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.36, stratify=y)
@@ -90,6 +86,10 @@ def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True
         X_train, y_train = smote.fit_resample(X_train, y_train)
         if plot:
             plot_before_after_smote(y_train_before, y_train, save_path=f'{save_plot_dir}/class_distribution_smote.png')
+    
+    class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(y), y=y.tolist())
+    class_weights = torch.tensor(class_weights, dtype=torch.float32)
+    
     
     if plot:
         plot_distribution_train_valid_test(y_train, y_valid, y_test, save_path=f'{save_plot_dir}/class_distribution_split.png')
@@ -122,4 +122,4 @@ def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True
     print(f"Validation set size: {len(valid_dataset)} samples")
     print(f"Test set size: {len(test_dataset)} samples")
     
-    return train_loader, valid_loader, test_loader
+    return train_loader, valid_loader, test_loader, class_weights

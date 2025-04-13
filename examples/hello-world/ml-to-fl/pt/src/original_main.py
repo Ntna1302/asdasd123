@@ -2,13 +2,14 @@ import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from net import FraudNet  # Import fraud detection model
+from net import FraudNet, AttentionTransformerFraudNet, EnhancedFraudNet  # Import fraud detection model
 from data import get_dataloaders_fraud  # Import dataset functions
 from evaluation import evaluate_model  # Import evaluation function
 from train import train_model, set_all_seeds  # Import training function from train.py
 import pandas as pd
 import sys
 from plot import plot_metrics, plot_confusion_matrices, plot_aucpr
+
 def main():
     # Load fraud dataset
     set_all_seeds(42)
@@ -23,19 +24,20 @@ def main():
 
     save_plot_dir = 'plot'
 
-    train_loader, valid_loader, test_loader = get_dataloaders_fraud(
-        DATASET_PATH, batch_size=batch_size, use_smote=False, plot=True, save_plot_dir=save_plot_dir
+    train_loader, valid_loader, test_loader, class_weights = get_dataloaders_fraud(
+        DATASET_PATH, batch_size=batch_size, use_smote=True, plot=True, save_plot_dir=save_plot_dir
     )
-
+    class_weights = class_weights
+    pos_weight = torch.tensor([class_weights[1] / class_weights[0]], device=DEVICE)
     df = pd.read_csv(DATASET_PATH)
     input_size = df.shape[1] - 1  
     print(f"Detected input size: {input_size}")
 
     # Initialize Model
-    model = FraudNet(input_size=input_size).to(DEVICE)
+    model = EnhancedFraudNet(input_size=input_size).to(DEVICE)
 
     # Loss Function (No weight balancing since using SMOTE)
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     # Optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
