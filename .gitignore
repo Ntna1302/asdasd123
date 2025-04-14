@@ -168,3 +168,5 @@ audit.log
 # python
 __pycache__
 .pyc
+
+*.pth

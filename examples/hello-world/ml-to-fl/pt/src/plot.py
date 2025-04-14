@@ -338,91 +338,6 @@ def plot_distribution_train_valid_test(y_train, y_valid, y_test, save_path="./cl
     plt.tight_layout(rect=[0, 0, 0.75, 0.97])  # Adjust layout to make room for the text box
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
-
-def plot_metrics(metrics, fig_name="Training Metrics", save_path="./metrics_plot.png"):
-    """
-    Plot accuracy, precision, and recall metrics in a single figure with three subplots.
-    
-    Parameters:
-    -----------
-    metrics : list of dict
-        List of metrics dictionaries, each containing 'accuracy', 'precision', 'recall'
-    fig_name : str
-        Title for the entire figure
-    save_path : str
-        Path where the figure will be saved
-        
-    Returns:
-    --------
-    None (saves the plot to file)
-    """
-    # Check if input is empty
-    if not metrics:
-        print("Error: Empty metrics list provided")
-        return
-    
-    # Create figure with 3 subplots (1 row, 3 columns)
-    fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-    fig.suptitle(fig_name, fontsize=16)
-    
-    # Prepare data
-    epochs = range(1, len(metrics) + 1)
-    
-    # Extract metrics
-    accuracy = [metric['accuracy'] for metric in metrics]
-    precision = [metric['precision'] for metric in metrics]
-    recall = [metric['recall'] for metric in metrics]
-    
-    # Colors
-    line_color = '#00008B'  # Dark blue
-    
-    # Accuracy plot (left)
-    axs[0].plot(epochs, accuracy, marker='o', color=line_color)
-    axs[0].set_title('Accuracy')
-    axs[0].set_xlabel('Epoch')
-    axs[0].set_ylabel('Accuracy (%)')
-    axs[0].grid(True, alpha=0.3)
-    
-    # Add best accuracy point
-    best_acc_idx = np.argmax(accuracy)
-    axs[0].plot(best_acc_idx + 1, accuracy[best_acc_idx], 'ro', markersize=8)
-    axs[0].text(best_acc_idx + 1.1, accuracy[best_acc_idx], 
-               f'Best: {accuracy[best_acc_idx]:.2f}%', fontsize=9)
-    
-    # Precision plot (middle)
-    axs[1].plot(epochs, precision, marker='o', color=line_color)
-    axs[1].set_title('Precision')
-    axs[1].set_xlabel('Epoch')
-    axs[1].set_ylabel('Precision (%)')
-    axs[1].grid(True, alpha=0.3)
-    
-    # Add best precision point
-    best_prec_idx = np.argmax(precision)
-    axs[1].plot(best_prec_idx + 1, precision[best_prec_idx], 'ro', markersize=8)
-    axs[1].text(best_prec_idx + 1.1, precision[best_prec_idx], 
-               f'Best: {precision[best_prec_idx]:.2f}%', fontsize=9)
-    
-    # Recall plot (right)
-    axs[2].plot(epochs, recall, marker='o', color=line_color)
-    axs[2].set_title('Recall')
-    axs[2].set_xlabel('Epoch')
-    axs[2].set_ylabel('Recall (%)')
-    axs[2].grid(True, alpha=0.3)
-    
-    # Add best recall point
-    best_rec_idx = np.argmax(recall)
-    axs[2].plot(best_rec_idx + 1, recall[best_rec_idx], 'ro', markersize=8)
-    axs[2].text(best_rec_idx + 1.1, recall[best_rec_idx], 
-               f'Best: {recall[best_rec_idx]:.2f}%', fontsize=9)
-    
-    # Adjust layout
-    plt.tight_layout()
-    
-    # Save the plot
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"Metrics visualization saved to {save_path}")
     
 def plot_learning_curve(train_metrics_list, valid_metrics_list, minibatch_loss_list=None, save_path="./learning_curve.png"):
     """
@@ -649,3 +564,113 @@ def plot_aucpr(model, test_loader, device, save_path="./auc_pr.png"):
     print(f"AUC-PR: {auc_pr:.3f}, plot saved to {save_path}")
     return auc_pr
 
+def plot_metrics(metrics, fig_name="Training Metrics", save_path="./metrics_plot.png"):
+    """
+    Plot accuracy, precision, recall, and loss metrics in a single figure with four subplots.
+    
+    Parameters:
+    -----------
+    metrics : list of dict
+        List of metrics dictionaries, each containing 'accuracy', 'precision', 'recall', and 'loss'
+    fig_name : str
+        Title for the entire figure
+    save_path : str
+        Path where the figure will be saved
+        
+    Returns:
+    --------
+    None (saves the plot to file)
+    """
+    # Check if input is empty
+    if not metrics:
+        print("Error: Empty metrics list provided")
+        return
+        
+    # Create figure with 4 subplots (2 rows, 2 columns)
+    fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+    fig.suptitle(fig_name, fontsize=16)
+    
+    # Prepare data
+    epochs = range(1, len(metrics) + 1)
+    
+    # Extract metrics
+    accuracy = [metric['accuracy'] for metric in metrics]
+    precision = [metric['precision'] for metric in metrics]
+    recall = [metric['recall'] for metric in metrics]
+    
+    # Extract loss (if available)
+    if 'loss' in metrics[0]:
+        loss = [metric['loss'] for metric in metrics]
+    else:
+        loss = None
+        print("Warning: Loss metric not found in the provided data")
+    
+    # Colors
+    line_color = '#00008B'  # Dark blue
+    
+    # Flatten 2x2 array of subplots for easier indexing
+    axs = axs.flatten()
+    
+    # Accuracy plot (top left)
+    axs[0].plot(epochs, accuracy, marker='o', color=line_color)
+    axs[0].set_title('Accuracy')
+    axs[0].set_xlabel('Epoch')
+    axs[0].set_ylabel('Accuracy (%)')
+    axs[0].grid(True, alpha=0.3)
+    
+    # Add best accuracy point
+    best_acc_idx = np.argmax(accuracy)
+    axs[0].plot(best_acc_idx + 1, accuracy[best_acc_idx], 'ro', markersize=8)
+    axs[0].text(best_acc_idx + 1.1, accuracy[best_acc_idx],
+              f'Best: {accuracy[best_acc_idx]:.2f}%', fontsize=9)
+    
+    # Precision plot (top right)
+    axs[1].plot(epochs, precision, marker='o', color=line_color)
+    axs[1].set_title('Precision')
+    axs[1].set_xlabel('Epoch')
+    axs[1].set_ylabel('Precision (%)')
+    axs[1].grid(True, alpha=0.3)
+    
+    # Add best precision point
+    best_prec_idx = np.argmax(precision)
+    axs[1].plot(best_prec_idx + 1, precision[best_prec_idx], 'ro', markersize=8)
+    axs[1].text(best_prec_idx + 1.1, precision[best_prec_idx],
+              f'Best: {precision[best_prec_idx]:.2f}%', fontsize=9)
+    
+    # Recall plot (bottom left)
+    axs[2].plot(epochs, recall, marker='o', color=line_color)
+    axs[2].set_title('Recall')
+    axs[2].set_xlabel('Epoch')
+    axs[2].set_ylabel('Recall (%)')
+    axs[2].grid(True, alpha=0.3)
+    
+    # Add best recall point
+    best_rec_idx = np.argmax(recall)
+    axs[2].plot(best_rec_idx + 1, recall[best_rec_idx], 'ro', markersize=8)
+    axs[2].text(best_rec_idx + 1.1, recall[best_rec_idx],
+              f'Best: {recall[best_rec_idx]:.2f}%', fontsize=9)
+    
+    # Loss plot (bottom right)
+    if loss:
+        axs[3].plot(epochs, loss, marker='o', color='#8B0000')  # Dark red for loss
+        axs[3].set_title('Loss')
+        axs[3].set_xlabel('Epoch')
+        axs[3].set_ylabel('Loss')
+        axs[3].grid(True, alpha=0.3)
+        
+        # Add best (minimum) loss point
+        best_loss_idx = np.argmin(loss)
+        axs[3].plot(best_loss_idx + 1, loss[best_loss_idx], 'bo', markersize=8)
+        axs[3].text(best_loss_idx + 1.1, loss[best_loss_idx],
+                  f'Best: {loss[best_loss_idx]:.4f}', fontsize=9)
+    else:
+        axs[3].text(0.5, 0.5, 'Loss data not available', 
+                  horizontalalignment='center', verticalalignment='center')
+    
+    # Adjust layout
+    plt.tight_layout()
+    
+    # Save the plot
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    plt.close()
+    print(f"Metrics visualization saved to {save_path}")

@@ -92,9 +92,26 @@ def train_model(model, num_epochs, train_loader, valid_loader, test_loader,
         with torch.no_grad():
             valid_metrics = compute_metrics(model, valid_loader, device)
             train_metrics = compute_metrics(model, train_loader, device)
+            
+            # Add loss to the metrics dictionaries
+            train_metrics['loss'] = avg_train_loss
+            
+            # Calculate validation loss
+            valid_loss = 0
+            for features, targets in valid_loader:
+                features, targets = features.to(device), targets.to(device)
+                targets = targets.view(-1, 1)
+                logits = model(features).to(device)
+                loss = criterion(logits, targets)
+                valid_loss += loss.item()
+            
+            avg_valid_loss = valid_loss / len(valid_loader)
+            valid_metrics['loss'] = avg_valid_loss
 
             print(f"Epoch {epoch+1}/{num_epochs}: "
+                  f"Train Loss: {avg_train_loss:.4f} | "
                   f"Train Acc: {train_metrics['accuracy']:.2f}% | "
+                  f"Valid Loss: {avg_valid_loss:.4f} | "
                   f"Valid Acc: {valid_metrics['accuracy']:.2f}% | "
                   f"Valid Precision: {valid_metrics['precision']:.2f}% | "
                   f"Valid Recall: {valid_metrics['recall']:.2f}% | "
@@ -127,7 +144,7 @@ def train_model(model, num_epochs, train_loader, valid_loader, test_loader,
     print("Evaluating best saved model on test data.")
 
     # Final Test Evaluation
-    test_metrics = compute_metrics(model, test_loader, device, threshold=0.956)
+    test_metrics = compute_metrics(model, test_loader, device)
     print(f"**Final Test Results:** "
           f"Accuracy: {test_metrics['accuracy']:.2f}%, "
           f"Precision: {test_metrics['precision']:.2f}%, "

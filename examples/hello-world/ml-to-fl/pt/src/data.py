@@ -87,7 +87,7 @@ def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True
         if plot:
             plot_before_after_smote(y_train_before, y_train, save_path=f'{save_plot_dir}/class_distribution_smote.png')
     
-    class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(y), y=y.tolist())
+    class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(y_train), y=y_train.tolist())
     class_weights = torch.tensor(class_weights, dtype=torch.float32)
     
     
