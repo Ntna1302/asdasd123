@@ -24,7 +24,7 @@ from nvflare.job_config.script_runner import FrameworkType, ScriptRunner
 def define_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_clients", type=int, default=2)
-    parser.add_argument("--num_rounds", type=int, default=5)
+    parser.add_argument("--num_rounds", type=int, default=2)
     parser.add_argument("--script", type=str, default="src/fraud_fl.py")
     parser.add_argument("--key_metric", type=str, default="precision")
     parser.add_argument("--launch_process", action=argparse.BooleanOptionalAction, default=False)

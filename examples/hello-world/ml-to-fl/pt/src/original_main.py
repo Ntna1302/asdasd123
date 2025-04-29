@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from net import FraudNet, AttentionTransformerFraudNet, EnhancedFraudNet  # Import fraud detection model
-from data import get_dataloaders_fraud  # Import dataset functions
+from data import get_dataloaders_fraud, get_dataloaders_fraud_2  # Import dataset functions
 from evaluation import evaluate_model  # Import evaluation function
 from train import train_model, set_all_seeds  # Import training function from train.py
 import pandas as pd
@@ -17,6 +17,8 @@ def main():
     
     # Set dataset path
     DATASET_PATH = "/home/khoa/Khoa/outsource/na_thesis/examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
+    TEST_DATASET_PATH = "/home/khoa/Khoa/outsource/na_thesis/examples/hello-world/ml-to-fl/pt/src/data/creditcard.csv"
+    TRAIN_VALID_DATASET_PATH = "/home/khoa/Khoa/outsource/na_thesis/examples/hello-world/ml-to-fl/pt/src/data/train_valid.csv"
     DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
     
     # Training hyperparameters
@@ -34,8 +36,12 @@ def main():
     
     save_plot_dir = f'plot_{model_name}_{batch_size}_{num_epochs}_{learning_rate}'
     
-    train_loader, valid_loader, test_loader, class_weights = get_dataloaders_fraud(
-        DATASET_PATH, batch_size=batch_size, use_smote=True, plot=True, save_plot_dir=save_plot_dir
+    # train_loader, valid_loader, test_loader, class_weights = get_dataloaders_fraud(
+    #     DATASET_PATH, batch_size=batch_size, use_smote=True, plot=True, save_plot_dir=save_plot_dir
+    # )
+    
+    train_loader, valid_loader, test_loader, class_weights, _ = get_dataloaders_fraud_2(
+        TRAIN_VALID_DATASET_PATH, test_csv=TEST_DATASET_PATH, batch_size=batch_size, use_smote=True, plot=True, save_plot_dir=save_plot_dir
     )
     
     class_weights = class_weights

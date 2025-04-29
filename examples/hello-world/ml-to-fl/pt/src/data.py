@@ -51,7 +51,7 @@ def add_noise(X_train, mean=0, sigma=0.1):
     noise = np.random.normal(mean, sigma, X_train.shape)
     return X_train + noise
 
-def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True, add_noise_flag=True, noise_std=0.1, plot = False, save_plot_dir = '.'):
+def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True, add_noise_flag=True, noise_std=0.1, plot = False, save_plot_dir = '.', sampling_strategy = 0.3):
     # Load dataset from CSV
     df = pd.read_csv(csv_path)
     
@@ -82,7 +82,7 @@ def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True
     if use_smote:
         print("Applying SMOTE to balance training data...")
         y_train_before = y_train
-        smote = SMOTETomek(sampling_strategy=0.3)
+        smote = SMOTETomek(sampling_strategy=sampling_strategy)
         X_train, y_train = smote.fit_resample(X_train, y_train)
         if plot:
             plot_before_after_smote(y_train_before, y_train, save_path=f'{save_plot_dir}/class_distribution_smote.png')
@@ -122,4 +122,75 @@ def get_dataloaders_fraud(csv_path, batch_size=64, num_workers=0, use_smote=True
     print(f"Validation set size: {len(valid_dataset)} samples")
     print(f"Test set size: {len(test_dataset)} samples")
     
-    return train_loader, valid_loader, test_loader, class_weights
+    return train_loader, valid_loader, test_loader, class_weights, ro_scaler
+
+def get_test_loader(csv_path, batch_size, scaler):
+    df_test = pd.read_csv(csv_path)
+    X_test = df_test.drop(columns=['Class']).values
+    y_test = df_test['Class'].values
+    
+    X_test = scaler.transform(X_test)
+    test_dataset = FraudDataset(X_test, y_test)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, num_workers=0, shuffle=False)
+    return X_test, y_test, test_loader
+
+def get_dataloaders_fraud_2(train_valid_csv, test_csv, batch_size=64, num_workers=0, use_smote=True, add_noise_flag=True, noise_std=0.1, plot = False, save_plot_dir = '.', sampling_strategy = 0.3):
+    # Load dataset from CSV
+    df = pd.read_csv(train_valid_csv)
+    if plot:
+        os.makedirs(save_plot_dir, exist_ok=True)
+        plot_distribution_org(df, save_path=f'{save_plot_dir}/class_distribution.png')
+    
+    df.drop_duplicates(inplace=True)
+    
+    df = df.sample(frac=1).reset_index(drop=True)
+    
+    # Extract features & labels
+    X = df.drop(columns=['Class']).values
+    y = df['Class'].values
+
+    ro_scaler = RobustScaler()
+    
+    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.2, stratify=y)
+    
+    X_train = ro_scaler.fit_transform(X_train)
+    X_valid = ro_scaler.transform(X_valid)
+    
+    # Apply SMOTE only to training set
+    if use_smote:
+        print("Applying SMOTE to balance training data...")
+        y_train_before = y_train
+        smote = SMOTETomek(sampling_strategy=sampling_strategy)
+        X_train, y_train = smote.fit_resample(X_train, y_train)
+        if plot:
+            plot_before_after_smote(y_train_before, y_train, save_path=f'{save_plot_dir}/class_distribution_smote.png')
+    
+    class_weights = compute_class_weight(class_weight="balanced", classes=np.unique(y_train), y=y_train.tolist())
+    class_weights = torch.tensor(class_weights, dtype=torch.float32)
+    
+    X_test, y_test, test_loader = get_test_loader(test_csv, batch_size, ro_scaler)
+    
+    if plot:
+        plot_distribution_train_valid_test(y_train, y_valid, y_test, save_path=f'{save_plot_dir}/class_distribution_split.png')
+    
+    # Add Gaussian Noise to Training Data (After SMOTE)
+    if add_noise_flag:
+        print(f"Adding Gaussian noise (std={noise_std}) to training data...")
+        X_train = add_noise(X_train, sigma=noise_std)
+    
+    # Convert labels to PyTorch-compatible format
+    y_train = torch.tensor(y_train, dtype=torch.float32)
+    y_valid = torch.tensor(y_valid, dtype=torch.float32)
+    
+    # Create PyTorch Datasets
+    train_dataset = FraudDataset(X_train, y_train)
+    valid_dataset = FraudDataset(X_valid, y_valid)
+    
+    # Create DataLoaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
+    valid_loader = DataLoader(valid_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
+    
+    print(f"Training set size after SMOTE: {len(train_dataset)} samples")
+    print(f"Validation set size: {len(valid_dataset)} samples")
+    
+    return train_loader, valid_loader, test_loader, class_weights, ro_scaler
